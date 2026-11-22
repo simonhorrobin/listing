@@ -166,7 +166,11 @@ in its env file.
   items, 71 with `country=UK` and none of those outside the UK; a
   malformed filter returned 400; `/rss/current`, `/rss/daily`, a filtered
   `/rss/current` and `/health` answered as before.
-- 2026-11-22: simonhorrobin/listing#4 removes the key from the feed.
+- 2026-11-22: simonhorrobin/listing#4 removes the key from the feed;
+  listing redeployed. `/gigs/rss/current?country=UK` answers without a
+  key (71 items) and the BFI feeds answer as before. listing returned 502
+  through the proxy for a few seconds after each of the day's two
+  restarts.
 - 2026-11-22: this branch's history for the loop was rewritten to remove
   account detail; the full record moved to proctor's private control
   plane.
