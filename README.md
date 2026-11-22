@@ -34,6 +34,38 @@ Examples:
     https://listing.dynamicalsystem.com/rss/current?dow=fri,sat
     https://listing.dynamicalsystem.com/rss/current?title=odyssey&dates=2026-09-19
 
+## Gig feed
+
+A second feed family: upcoming gigs by the artists tracked on Songkick.
+
+| Feed | Contents |
+|---|---|
+| `/gigs/rss/current?key=...` | every upcoming gig, one item per event |
+
+The events come from proctor, dynamicalsystem's internal API proxy, which
+joins Songkick's calendar with the tracked-artist list. listing keeps no copy
+and holds no Songkick credentials; it asks proctor (`PROCTOR_URL`), filters
+and renders. If proctor cannot be reached the gig feed answers 503 and the
+BFI feeds are unaffected.
+
+The feed names the artists being tracked, so it is not public. The URL must
+carry `key=` matching `GIGS_FEED_KEY`; without it the route answers 404, and
+with no key configured the route is off.
+
+Each item is titled with the tracked artists that caused the event and the
+date, and links to the Songkick event page. The body is the venue, linked to
+a map, then the line-up. Where proctor found no tracked artist the title
+falls back to the first-named act. The item id is fixed to Songkick's event
+id, so a changed line-up or venue updates the item in place.
+
+Filters, composed as intersection; a malformed value is a 400:
+
+| Parameter | Meaning |
+|---|---|
+| `country=UK,US` | events in these countries |
+| `lineup=orbital` | case-insensitive substring over the line-up, support and tracked artists |
+| `dow`, `dates`, `from`, `to` | as the showings feeds, on the event's first day |
+
 ## Other endpoints
 
 - `/` - HTML view of all upcoming showings

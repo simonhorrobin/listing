@@ -14,6 +14,10 @@ import feedgen.feed
 
 from dynamicalsystem.listing.config import Config
 from .filters import FilterError, matches, parse_filters
+from .gigs import (
+    GigSourceError, add_gig_entry, fetch_events, gig_matches, key_ok,
+    parse_gig_filters,
+)
 from .queries import get_upcoming_showings, get_recent_changes, get_health_info
 from .models import Showing, HealthInfo
 
@@ -217,6 +221,54 @@ async def rss_daily(
             media_type="application/xml",
             status_code=500
         )
+
+
+def _xml_error(message: str, status_code: int) -> Response:
+    from html import escape
+    return Response(
+        content=f"<?xml version='1.0'?><error>{escape(str(message))}</error>",
+        media_type="application/xml",
+        status_code=status_code,
+    )
+
+
+@app.get("/gigs/rss/current")
+def gigs_rss_current(
+    key: Optional[str] = None,
+    country: Optional[str] = None,
+    lineup: Optional[str] = None,
+    dow: Optional[str] = None,
+    dates: Optional[str] = None,
+    date_from: Optional[str] = Query(None, alias="from"),
+    date_to: Optional[str] = Query(None, alias="to"),
+):
+    """RSS feed of gigs by tracked artists; needs ?key=, takes
+    ?country/?lineup/?dow/?dates/?from/?to. Events come from proctor."""
+    if not key_ok(key, Config.GIGS_FEED_KEY):
+        # not public: without the key the route does not exist
+        return Response(content="Not Found", media_type="text/plain", status_code=404)
+    try:
+        spec, filter_desc = parse_gig_filters(country, lineup, dow, dates, date_from, date_to)
+    except FilterError as e:
+        return _xml_error(e, 400)
+    try:
+        events = fetch_events(Config.PROCTOR_URL, Config.PROCTOR_TIMEOUT_SECONDS)
+    except GigSourceError as e:
+        return _xml_error(e, 503)
+
+    events = [ev for ev in events if gig_matches(ev, spec)]
+    fg = feedgen.feed.FeedGenerator()
+    fg.id(f"{Config.SITE_URL}/gigs/rss/current")
+    fg.title("Gigs - tracked artists" + (f" ({filter_desc})" if spec else ""))
+    fg.author({"name": "Gig Listings", "email": "noreply@example.com"})
+    fg.link(href=Config.SITE_URL, rel="alternate")
+    fg.description("Upcoming gigs by the artists tracked on Songkick")
+    fg.language("en")
+    # feedgen puts each new entry first; add latest-first so the feed reads
+    # soonest-first
+    for event in sorted(events, key=lambda ev: (ev.get("start") or "", ev.get("id") or ""), reverse=True):
+        add_gig_entry(fg, event, Config.SITE_URL)
+    return Response(content=fg.rss_str(pretty=True), media_type="application/rss+xml")
 
 
 @app.get("/robots.txt")
