@@ -10,12 +10,9 @@ from dynamicalsystem.listing.config import Config
 from dynamicalsystem.listing.webserver import gigs
 from dynamicalsystem.listing.webserver.filters import FilterError
 from dynamicalsystem.listing.webserver.gigs import (
-    gig_body, gig_matches, gig_title, key_ok, parse_gig_filters,
+    gig_body, gig_matches, gig_title, parse_gig_filters,
 )
 from dynamicalsystem.listing.webserver.main import app
-
-KEY = "test-key"
-
 
 def event(**over):
     base = {
@@ -51,7 +48,6 @@ EVENTS = [
 
 @pytest.fixture
 def client(monkeypatch):
-    monkeypatch.setattr(Config, "GIGS_FEED_KEY", KEY)
     monkeypatch.setattr(Config, "PROCTOR_URL", "http://proctor:8000")
     monkeypatch.setattr(gigs, "fetch_events", lambda base, timeout: [dict(e) for e in EVENTS])
     monkeypatch.setattr("dynamicalsystem.listing.webserver.main.fetch_events", lambda base, timeout: [dict(e) for e in EVENTS])
@@ -90,17 +86,13 @@ def test_body_is_venue_with_a_map_link_then_the_lineup():
     assert "Zeta &amp; &lt;Eta&gt;, Kappa" in gig_body(EVENTS[3])  # names are escaped
 
 
-def test_the_feed_needs_its_key(client, monkeypatch):
-    assert client.get("/gigs/rss/current").status_code == 404
-    assert client.get("/gigs/rss/current?key=wrong").status_code == 404
-    assert len(items(client.get(f"/gigs/rss/current?key={KEY}"))) == 4
-    monkeypatch.setattr(Config, "GIGS_FEED_KEY", "")
-    assert client.get("/gigs/rss/current?key=").status_code == 404  # no key configured: off
-    assert not key_ok("", "") and not key_ok(None, KEY)
+def test_the_feed_is_open_and_ignores_a_leftover_key(client):
+    assert len(items(client.get("/gigs/rss/current"))) == 4
+    assert len(items(client.get("/gigs/rss/current?key=anything"))) == 4  # an old bookmark still works
 
 
 def test_items_carry_guid_link_title_and_no_published_date(client):
-    found = {i.findtext("guid"): i for i in items(client.get(f"/gigs/rss/current?key={KEY}"))}
+    found = {i.findtext("guid"): i for i in items(client.get(f"/gigs/rss/current"))}
     item = found[f"{Config.SITE_URL}/gig/1001"]
     assert item.findtext("title") == "Gamma Ray - Tue 12 Jan 2027"
     assert item.findtext("link") == "https://www.songkick.com/concerts/1001-alpha"
@@ -112,32 +104,32 @@ def test_the_guid_does_not_change_when_the_details_do(client, monkeypatch):
     changed = [dict(EVENTS[0], lineup=["Alpha", "Beta", "Gamma Ray", "New Support"], venue="Moved Hall",
                     tracked_artists=[{"id": "13", "name": "Gamma Ray"}, {"id": "16", "name": "Beta"}])]
     monkeypatch.setattr("dynamicalsystem.listing.webserver.main.fetch_events", lambda base, timeout: changed)
-    (item,) = items(client.get(f"/gigs/rss/current?key={KEY}"))
+    (item,) = items(client.get(f"/gigs/rss/current"))
     assert item.findtext("guid") == f"{Config.SITE_URL}/gig/1001"
 
 
 def test_soonest_first(client):
-    guids = [i.findtext("guid").rsplit("/", 1)[1] for i in items(client.get(f"/gigs/rss/current?key={KEY}"))]
+    guids = [i.findtext("guid").rsplit("/", 1)[1] for i in items(client.get(f"/gigs/rss/current"))]
     assert guids == ["1001", "1002", "1003", "1004"]
 
 
 def test_country_filter_keeps_london_and_drops_new_york(client):
-    kept = [i.findtext("guid").rsplit("/", 1)[1] for i in items(client.get(f"/gigs/rss/current?key={KEY}&country=uk"))]
+    kept = [i.findtext("guid").rsplit("/", 1)[1] for i in items(client.get(f"/gigs/rss/current?country=uk"))]
     assert kept == ["1001", "1003", "1004"]  # 1004 has no postcode and is kept
-    both = items(client.get(f"/gigs/rss/current?key={KEY}&country=UK,US"))
+    both = items(client.get(f"/gigs/rss/current?country=UK,US"))
     assert len(both) == 4
 
 
 def test_lineup_and_date_filters_compose(client):
-    assert len(items(client.get(f"/gigs/rss/current?key={KEY}&lineup=gamma"))) == 2
-    assert len(items(client.get(f"/gigs/rss/current?key={KEY}&lineup=gamma&from=2027-02-01"))) == 1
-    assert len(items(client.get(f"/gigs/rss/current?key={KEY}&dow=sat"))) == 1
-    assert len(items(client.get(f"/gigs/rss/current?key={KEY}&dates=2027-01-12,2027-04-01"))) == 2
+    assert len(items(client.get(f"/gigs/rss/current?lineup=gamma"))) == 2
+    assert len(items(client.get(f"/gigs/rss/current?lineup=gamma&from=2027-02-01"))) == 1
+    assert len(items(client.get(f"/gigs/rss/current?dow=sat"))) == 1
+    assert len(items(client.get(f"/gigs/rss/current?dates=2027-01-12,2027-04-01"))) == 2
 
 
 @pytest.mark.parametrize("query", ["country=", "country=,", "lineup=%20", "dow=funday", "from=tomorrow", "dates=12/01/2027"])
 def test_a_malformed_filter_is_a_400(client, query):
-    assert client.get(f"/gigs/rss/current?key={KEY}&{query}").status_code == 400
+    assert client.get(f"/gigs/rss/current?{query}").status_code == 400
 
 
 def test_filter_parsing_and_matching_units():
@@ -154,7 +146,6 @@ def test_proctor_unreachable_is_a_clear_503_and_bfi_feeds_still_work(monkeypatch
     db_path = str(tmp_path / "test.db")
     Database(db_path)
     monkeypatch.setattr(Config, "DB_PATH", db_path)
-    monkeypatch.setattr(Config, "GIGS_FEED_KEY", KEY)
     monkeypatch.setattr(Config, "PROCTOR_URL", "http://proctor:8000")
 
     def refuse(*args, **kwargs):
@@ -162,15 +153,14 @@ def test_proctor_unreachable_is_a_clear_503_and_bfi_feeds_still_work(monkeypatch
 
     monkeypatch.setattr(gigs.requests, "get", refuse)
     c = TestClient(app)
-    answer = c.get(f"/gigs/rss/current?key={KEY}")
+    answer = c.get(f"/gigs/rss/current")
     assert answer.status_code == 503 and "proctor unreachable" in answer.text
     assert c.get("/rss/current").status_code == 200
 
 
 def test_unconfigured_proctor_and_bad_answers_are_503(monkeypatch):
-    monkeypatch.setattr(Config, "GIGS_FEED_KEY", KEY)
     monkeypatch.setattr(Config, "PROCTOR_URL", "")
-    assert TestClient(app).get(f"/gigs/rss/current?key={KEY}").status_code == 503
+    assert TestClient(app).get(f"/gigs/rss/current").status_code == 503
 
     class Answer:
         status_code = 503

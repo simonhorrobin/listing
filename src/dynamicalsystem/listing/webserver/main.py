@@ -15,7 +15,7 @@ import feedgen.feed
 from dynamicalsystem.listing.config import Config
 from .filters import FilterError, matches, parse_filters
 from .gigs import (
-    GigSourceError, add_gig_entry, fetch_events, gig_matches, key_ok,
+    GigSourceError, add_gig_entry, fetch_events, gig_matches,
     parse_gig_filters,
 )
 from .queries import get_upcoming_showings, get_recent_changes, get_health_info
@@ -234,7 +234,6 @@ def _xml_error(message: str, status_code: int) -> Response:
 
 @app.get("/gigs/rss/current")
 def gigs_rss_current(
-    key: Optional[str] = None,
     country: Optional[str] = None,
     lineup: Optional[str] = None,
     dow: Optional[str] = None,
@@ -242,11 +241,8 @@ def gigs_rss_current(
     date_from: Optional[str] = Query(None, alias="from"),
     date_to: Optional[str] = Query(None, alias="to"),
 ):
-    """RSS feed of gigs by tracked artists; needs ?key=, takes
+    """RSS feed of gigs by tracked artists; takes
     ?country/?lineup/?dow/?dates/?from/?to. Events come from proctor."""
-    if not key_ok(key, Config.GIGS_FEED_KEY):
-        # not public: without the key the route does not exist
-        return Response(content="Not Found", media_type="text/plain", status_code=404)
     try:
         spec, filter_desc = parse_gig_filters(country, lineup, dow, dates, date_from, date_to)
     except FilterError as e:

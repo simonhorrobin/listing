@@ -13,7 +13,6 @@ Filters live in the URL, as for showings:
 """
 from datetime import date
 from html import escape
-from hmac import compare_digest
 from typing import Dict, List, Optional, Tuple
 from urllib.parse import quote
 
@@ -26,11 +25,6 @@ MAX_NAMES_IN_TITLE = 3
 
 class GigSourceError(Exception):
     """proctor could not give us events; the feed answers 503."""
-
-
-def key_ok(given: Optional[str], expected: str) -> bool:
-    """The feed is off without a configured key, and closed without it."""
-    return bool(expected) and given is not None and compare_digest(given, expected)
 
 
 def fetch_events(base_url: str, timeout: float) -> List[Dict]:
