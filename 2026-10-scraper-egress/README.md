@@ -1,7 +1,7 @@
 ---
 loop: 2026-10-scraper-egress
 product: listing
-owner: dynamicalsystem
+owner: simonhorrobin
 status: Act
 parent: null
 blocked-by: []
@@ -16,7 +16,7 @@ triggers: []
 
 Act (experiment 1); Decision still pending experiments 2 and 3
 
-**Owner:** dynamicalsystem
+**Owner:** simonhorrobin
 
 ## Context
 

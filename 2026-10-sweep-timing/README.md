@@ -1,7 +1,7 @@
 ---
 loop: 2026-10-sweep-timing
 product: listing
-owner: dynamicalsystem
+owner: simonhorrobin
 status: Act
 parent: null
 blocked-by: []
@@ -20,7 +20,7 @@ triggers:
 
 Act
 
-**Owner:** dynamicalsystem
+**Owner:** simonhorrobin
 
 ## Context
 

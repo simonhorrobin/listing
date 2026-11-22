@@ -1,7 +1,7 @@
 ---
 loop: 2026-09-soak-test
 product: listing
-owner: dynamicalsystem
+owner: simonhorrobin
 status: Closed
 parent: 2026-09-deploy-gateway
 blocked-by: []
@@ -16,7 +16,7 @@ triggers: []
 
 Closed
 
-**Owner:** dynamicalsystem
+**Owner:** simonhorrobin
 
 ## Context
 

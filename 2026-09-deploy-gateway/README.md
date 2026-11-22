@@ -1,7 +1,7 @@
 ---
 loop: 2026-09-deploy-gateway
 product: listing
-owner: dynamicalsystem
+owner: simonhorrobin
 status: Closed
 parent: null
 blocked-by: []
@@ -18,7 +18,7 @@ triggers:
 
 Closed
 
-**Owner:** dynamicalsystem
+**Owner:** simonhorrobin
 
 ## Context
 
