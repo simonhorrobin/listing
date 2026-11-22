@@ -38,6 +38,15 @@ class Config:
     SITE_TITLE = os.getenv('SITE_TITLE', 'BFI IMAX Listings')
     SITE_URL = os.getenv('SITE_URL', 'http://localhost:8080')
 
+    # Gig feed (loop 2026-11-gig-feed). Events come from proctor, the
+    # internal API proxy; listing keeps no copy. Empty PROCTOR_URL or empty
+    # GIGS_FEED_KEY turns the gig routes off.
+    PROCTOR_URL = os.getenv('PROCTOR_URL', '').rstrip('/')
+    PROCTOR_TIMEOUT_SECONDS = float(os.getenv('PROCTOR_TIMEOUT_SECONDS', '60'))
+    # The gig feed names the artists Simon tracks, so it is not public: the
+    # feed URL must carry ?key=<this>.
+    GIGS_FEED_KEY = os.getenv('GIGS_FEED_KEY', '')
+
     @classmethod
     def validate(cls) -> bool:
         """Validate configuration settings.

@@ -88,11 +88,19 @@ def matches(showing: Showing, spec: Dict) -> bool:
     if 'title' in spec and spec['title'] not in showing.movie_title.lower():
         return False
 
+    return date_matches(showing.showing_date, spec)
+
+
+def date_matches(iso_date: str, spec: Dict) -> bool:
+    """True if the YYYY-MM-DD date satisfies the spec's dow/dates/from/to.
+
+    Model-independent, so every feed family filters dates the same way.
+    """
     needs_date = {'dow', 'dates', 'from', 'to'} & spec.keys()
     if needs_date:
         try:
-            d = date.fromisoformat(showing.showing_date)
-        except ValueError:
+            d = date.fromisoformat(iso_date)
+        except (ValueError, TypeError):
             return False
         if 'dow' in spec and d.weekday() not in spec['dow']:
             return False
