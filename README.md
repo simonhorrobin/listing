@@ -40,17 +40,13 @@ A second feed family: upcoming gigs by the artists tracked on Songkick.
 
 | Feed | Contents |
 |---|---|
-| `/gigs/rss/current?key=...` | every upcoming gig, one item per event |
+| `/gigs/rss/current` | every upcoming gig, one item per event |
 
 The events come from proctor, dynamicalsystem's internal API proxy, which
 joins Songkick's calendar with the tracked-artist list. listing keeps no copy
 and holds no Songkick credentials; it asks proctor (`PROCTOR_URL`), filters
 and renders. If proctor cannot be reached the gig feed answers 503 and the
 BFI feeds are unaffected.
-
-The feed names the artists being tracked, so it is not public. The URL must
-carry `key=` matching `GIGS_FEED_KEY`; without it the route answers 404, and
-with no key configured the route is off.
 
 Each item is titled with the tracked artists that caused the event and the
 date, and links to the Songkick event page. The body is the venue, linked to
